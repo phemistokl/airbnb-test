@@ -7,7 +7,7 @@ import { RegisterView } from './ui/RegisterView';
 export const RegisterConnector = () => {
     return (
     <RegisterController>
-        {({ submit }) =>  <RegisterView submit={submit} />}
+        {({ submit }: any) =>  <RegisterView submit={submit} />}
     </RegisterController>
     )
 };

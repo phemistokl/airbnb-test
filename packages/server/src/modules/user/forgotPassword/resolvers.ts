@@ -1,21 +1,13 @@
-import * as yup from "yup";
 import * as bcrypt from "bcryptjs";
 
 import { ResolverMap } from "../../../types/graphql-utils";
-import { forgotPasswordLockAccount } from "../../../utils/forgotPasswordLockAccount";
 import { createForgotPasswordLink } from "../../../utils/createForgotPasswordLink";
 import { User } from "../../../entity/User";
-import { userNotFoundError, expiredKeyError } from "./errorMessages";
+import { expiredKeyError } from "./errorMessages";
 import { forgotPasswordPrefix } from "../../../constants";
-import { registerPasswordValidation } from "@abb/common";
+import { changePasswordSchema } from "@abb/common";
 import { formatYupError } from "../../../utils/formatYupError";
-
-// 20 minutes
-// lock account
-
-const schema = yup.object().shape({
-  newPassword: registerPasswordValidation
-});
+import { sendEmail } from "../../../utils/sendEmail";
 
 export const resolvers: ResolverMap = {
   Mutation: {
@@ -26,18 +18,23 @@ export const resolvers: ResolverMap = {
     ) => {
       const user = await User.findOne({ where: { email } });
       if (!user) {
-        return [
-          {
-            path: "email",
-            message: userNotFoundError
-          }
-        ];
+        return { ok: true };
+        // return [
+        //   {
+        //     path: "email",
+        //     message: "userNotFoundError"
+        //   }
+        // ];
       }
 
-      await forgotPasswordLockAccount(user.id, redis);
+      // await forgotPasswordLockAccount(user.id, redis);
       // @todo add frontend url
-      await createForgotPasswordLink("", user.id, redis);
-      // @todo send email with url
+      const url = await createForgotPasswordLink(
+        process.env.FRONTEND_HOST as string,
+        user.id,
+        redis
+      );
+      await sendEmail(email, url, "reset password");
       return true;
     },
     forgotPasswordChange: async (
@@ -52,13 +49,13 @@ export const resolvers: ResolverMap = {
         return [
           {
             path: "key",
-            message: expiredKeyError
-          }
+            message: expiredKeyError,
+          },
         ];
       }
 
       try {
-        await schema.validate({ newPassword }, { abortEarly: false });
+        await changePasswordSchema.validate({ newPassword }, { abortEarly: false });
       } catch (err) {
         return formatYupError(err);
       }
@@ -69,7 +66,7 @@ export const resolvers: ResolverMap = {
         { id: userId },
         {
           forgotPasswordLocked: false,
-          password: hashedPassword
+          password: hashedPassword,
         }
       );
 
@@ -78,6 +75,6 @@ export const resolvers: ResolverMap = {
       await Promise.all([updatePromise, deleteKeyPromise]);
 
       return null;
-    }
-  }
+    },
+  },
 };

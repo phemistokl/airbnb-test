@@ -4,10 +4,10 @@ import * as React from "react";
 import { Form as AntdForm, Button, Checkbox } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { withFormik, FormikProps, Field, Form } from 'formik';
-import { validUserSchema } from '@abb/common';
+import { loginSchema } from '@abb/common';
+import { Link } from 'react-router-dom';
 import { NormalizedErrorMap } from '@abb/controller';
 import { InputField } from "../../shared/InputField";
-import { Link } from "react-router-dom";
 
 interface FormValues {
   email: string;
@@ -49,16 +49,18 @@ const FormView = (props: Props & FormikProps<FormValues>) => {
             htmlType="submit"
             className="login-form-button"
           >
-            Register
-          </Button> Or <Link to="/login">login now!</Link>
+            Login
+          </Button> Or <Link to="/register">register</Link>
         </AntdForm.Item>
       </div>
     </Form>
   );
 }
 
-export const RegisterView = withFormik<Props, FormValues>({
-  validationSchema: validUserSchema,
+export const LoginView = withFormik<Props, FormValues>({
+  validationSchema: loginSchema,
+  validateOnBlur: false,
+  validateOnChange: false,
   mapPropsToValues: () => ({ email: "", password: "" }),
   handleSubmit: async (values, { props, setErrors }) => {
     const errors = props.submit && await props.submit(values);
